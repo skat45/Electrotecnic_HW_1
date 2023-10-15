@@ -1,75 +1,64 @@
-%% Программа расчёта значений ДЗ1 Электротехника Вариант 63
+e1 = (977.5 / sqrt(2)) * (cos(-0.248) + j * sin(-0.248));
+J2 = (6.3 / sqrt(2)) * (cos(3.605) + j * sin(3.605));
+e3 = (1037.7 / sqrt(2)) * (cos(2.837) + j * sin(2.837));
+e6 = (200.0 / sqrt(2)) * (cos(0.785) + j * sin(0.785));
 
-% Hz
 omega = 1000;
 
-% Volt or Amper
-E1_A = 977.5;
-J2_A = 6.3;
-E3_A = 1037.7;
-E6_A = 200;
-
-
-% Rad
-fi0_e1 = -0.248;
-fi0_J2 = 3.605;
-fi0_e3 = 2.837;
-fi0_e6 = 0.785;
-
-R1 = 30; % Ohm
-L1 = 20 * 10^(-3); % Hn
-R2 = 10; % Ohm
-R3 = 80; % Ohm
-R4 = 60; % Ohm
-C4 = 14.3 * 10^(-6); % F
-R5 = 60; % Ohm
-C5 = 10 * 10^(-6); % F
-
-% Calculate imaginary equivalent
-
-z1 = R1 + j * (omega * L1);
-z2 = R2;
-z3 = R3;
-z4 = R4 - j / (omega * C4);
-z5 = R5 - j / (omega * C5);
-
-E1 = (E1_A/sqrt(2)) * (cos(fi0_e1) + j*sin(fi0_e1));
-E3 = (E3_A/sqrt(2)) * (cos(fi0_e3) + j*sin(fi0_e3));
-E6 = (E6_A/sqrt(2)) * (cos(fi0_e6) + j*sin(fi0_e6));
-J2 = (J2_A/sqrt(2)) * (cos(fi0_J2) + j*sin(fi0_J2));
-
-% Method of equivalent currents
+z1 = 30 + j * omega * 20 * 10^(-3);
+z2 = 10;
+z3 = 80;
+z4 = 60 - j / (omega * 14.3 * 10^(-6));
+z5 = 60 - j / (omega * 10.0 * 10^(-6));
 
 A = [1, 0, 0;
-    -z3, z5+z3, z5;
-    z1, z5, z1+z4+z5];
+     -z3, z5 + z3, z5;
+     z1, z5, z5 + z1 + z4];
 B = [J2;
-    -E3-E6;
-    E1];
-
+     -e3 - e6;
+     e1];
 X = linsolve(A, B);
+
 I_I = X(1, 1);
 I_II = X(2, 1);
 I_III = X(3, 1);
 
-I1 = I_I + I_III;
+I1 = - I_I - I_III;
 I2 = I_I;
 I3 = I_I - I_II;
-I4 = - I_III;
-I5 = I_III;
-I6 = -I_II;
+I4 = I_III;
+I5 = - I_III - I_II;
+I6 = - I_II;
 
-U_J2 = I2 * z2 + I1 * z1 + I3 * z3 - E1 - E3;
+Uj = I2 * z2 - I1 * z1 + I3 * z3 - e3 - e1;
+
+% Генератор
+
+z_gen = (z3 * z5) / (z3 + z5) + z1;
+
+I_I_gen = J2;
+I_II_gen = (e1 + e3 + e6 - I_I_gen * (z1 + z3)) / (z1 + z3 + z4);
+I3_s = I_I_gen + I_II_gen;
+
+U_gen = e3 + e6 - I3_s * z3;
+
+z_pair = z1 + z4;
+z_gen = (z_pair * z3) / (z_pair + z3);
+
+z_all = z_gen + z5;
+I5_gen = U_gen / z_all;
 
 
-FileID = fopen("./ElTeh_output.txt", "w");
+
+FileID = fopen("./EltehOut.txt", "w");
+
 string = "Вычесленные значения: \n\n";
 
 string = string + "Мгновенные значения напряжений и токов на источниках:\n";
 
-string = string + "E1 = " + real(E1) + " + j(" + imag(E1) + ")\n";
-string = string + "E3 = " + real(E3) + " + j(" + imag(E3) + ")\n";
-string = string + "E6 = " + real(E6) + " + j(" + imag(E6) + ")\n";
+string = string + "E1 = " + real(e1) + " + j(" + imag(e1) + ")\n";
+string = string + "E3 = " + real(e3) + " + j(" + imag(e3) + ")\n";
+string = string + "E6 = " + real(e6) + " + j(" + imag(e6) + ")\n";
 string = string + "J2 = " + real(J2) + " + j(" + imag(J2) + ")\n\n";
 
 string = string + "Комплексные эквиваленты сопротивлений:\n";
@@ -88,8 +77,13 @@ string = string + "I5 = " + real(I5) + " + j(" + imag(I5) + ")\n";
 string = string + "I6 = " + real(I6) + " + j(" + imag(I6) + ")\n\n";
 
 string = string + "Напряжение на источнике тока:\n";
-string = string + "U_J2 = " + real(U_J2) + " + j(" + imag(U_J2) + ")\n";
+string = string + "U_J2 = " + real(Uj) + " + j(" + imag(Uj) + ")\n\n";
 
+string = string + "Расчёт тока I5 методом эквивалентного генератора:\n";
+string = string + "Zэкв = " + real(z_gen) + " + j(" + imag(z_gen) + ")\n";
+string = string + "Eэкв = " + real(U_gen) + " + j(" + imag(U_gen) + ")\n";
+string = string + "I5 = " + real(I5_gen) + " + j(" + imag(I5_gen) + ")\n";
 
 fprintf(FileID, string);
+
 fclose(FileID);
